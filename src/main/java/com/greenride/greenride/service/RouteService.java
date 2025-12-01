@@ -3,13 +3,15 @@ package com.greenride.greenride.service;
 import com.greenride.greenride.domain.Route;
 import com.greenride.greenride.domain.RouteStatus;
 import com.greenride.greenride.domain.User;
+import com.greenride.greenride.domain.ports.GeolocationPort;
+import com.greenride.greenride.dto.Coordinates;
+import com.greenride.greenride.dto.RouteEstimate;
 import com.greenride.greenride.repository.RouteRepository;
 import com.greenride.greenride.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -17,31 +19,31 @@ public class RouteService {
 
     private final RouteRepository routeRepository;
     private final UserRepository userRepository;
-    private final OpenRouteService openRouteService;
     private final NotificationService notificationService;
+    private final GeolocationPort geolocationPort;
 
     public RouteService(RouteRepository routeRepository,
                         UserRepository userRepository,
-                        OpenRouteService openRouteService,
-                        NotificationService notificationService) {
+                        NotificationService notificationService,
+                        GeolocationPort geolocationPort) {
         this.routeRepository = routeRepository;
         this.userRepository = userRepository;
-        this.openRouteService = openRouteService;
         this.notificationService = notificationService;
+        this.geolocationPort = geolocationPort;
     }
 
     public Route createRoute(String username, String start, String destination,
                              LocalDateTime departureTime, Integer seats, Double price,
                              String carModel, Integer carYear, Integer carHp, String fuelType,
-                             String licenseImgName, String idCardImgName) { // <--- NEW PARAMS
+                             String licenseImgName, String idCardImgName) {
 
         User driver = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Driver not found"));
 
-        // 1. API Call (Keep existing)
-        Map<String, Object> routeData = openRouteService.getRouteDetails(start, destination);
-        Double distanceDouble = (Double) routeData.get("distanceMeters");
-        Double durationDouble = (Double) routeData.get("durationSeconds");
+        // 1. USE ADAPTER
+        Coordinates startCoords = geolocationPort.geocodeAddress(start);
+        Coordinates endCoords = geolocationPort.geocodeAddress(destination);
+        RouteEstimate estimate = geolocationPort.calculateRouteEstimate(startCoords, endCoords);
 
         Route route = new Route();
         route.setDriver(driver);
@@ -50,11 +52,14 @@ public class RouteService {
         route.setDepartureTime(departureTime);
         route.setAvailableSeats(seats);
         route.setPrice(price);
-        route.setDistanceMeters(distanceDouble.longValue());
-        route.setEstimatedDurationSeconds(durationDouble.longValue());
+
+        // 2. SET DATA (Fixing getter usage)
+        route.setDistanceMeters(estimate.getDistanceMeters());
+        route.setEstimatedDurationSeconds(estimate.getTravelTimeSeconds());
+
         route.setStatus(RouteStatus.CREATED);
 
-        // 2. SET NEW DETAILS
+        // 3. SET CAR DETAILS
         route.setCarModel(carModel);
         route.setCarYear(carYear);
         route.setCarHp(carHp);
@@ -66,13 +71,14 @@ public class RouteService {
     }
 
     public List<Route> getAllAvailableRoutes() {
-        return routeRepository.findAll();
+        return routeRepository.findAll().stream()
+                .filter(r -> r.getStatus() == RouteStatus.CREATED && r.getAvailableSeats() > 0)
+                .collect(Collectors.toList());
     }
 
     public List<Route> getRoutesByDriver(String username) {
-        User driver = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        return routeRepository.findAllByDriverId(driver.getId());
+        // Fixing the repository call
+        return routeRepository.findByDriverUsername(username);
     }
 
     public Route getRouteById(Long id) {
@@ -92,22 +98,24 @@ public class RouteService {
                 .collect(Collectors.toList());
     }
 
-    // FINISH ROUTE (Triggers Notifications)
+    // FIX: Changed FINISHED -> COMPLETED and restored manual notification logic
     public void finishRoute(Long id) {
         Route route = getRouteById(id);
+
+        // 1. Fix Enum Name
         route.setStatus(RouteStatus.COMPLETED);
         routeRepository.save(route);
 
-
+        // 2. Fix Notification Logic (Restore the loop)
         if (route.getBookings() != null) {
             for (com.greenride.greenride.domain.Booking b : route.getBookings()) {
                 String msg = "🏁 The driver has finished the ride! Click here to rate your trip.";
+                // This calls the existing method in NotificationService
                 notificationService.sendImmediateAlert(b.getPassenger(), msg, route.getId());
             }
         }
     }
 
-    // --- THIS WAS MISSING (Fixes your error) ---
     public void updateRouteTime(Route route) {
         routeRepository.save(route);
     }

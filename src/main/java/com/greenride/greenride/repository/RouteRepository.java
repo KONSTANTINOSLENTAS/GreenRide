@@ -15,4 +15,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
 
     // Find all routes created by a specific driver
     List<Route> findAllByDriverId(Long driverId);
+
+    // 👇 ADD THIS MISSING METHOD
+    List<Route> findByDriverUsername(String username);
 }

@@ -38,7 +38,7 @@
         .route-card:hover { transform: translateY(-3px); }
 
         .route-info { margin: 8px 0; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
-        .badge { background: rgba(46, 125, 50, 0.1); color: var(--accent-color); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .badge { background: rgba(46, 125, 50, 0.1); color: var(--accent-color); align-self: flex-start; height: fit-content; white-space: nowrap; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
 
         .empty-state { color: var(--text-secondary); padding: 20px; background: var(--card-bg); border-radius: 12px; border: 1px dashed var(--border-color); }
 
@@ -173,7 +173,7 @@
             </div>
 
             <div class="passenger-list">
-                <strong style="font-size: 0.9em;">👥 Manifest:</strong>
+                <strong style="font-size: 0.9em;">👥 Passenger List:</strong>
                 <div th:if="${route.bookings.isEmpty()}" style="color: var(--text-secondary); font-size: 0.8em; margin-left: 20px;">No bookings yet.</div>
                 <div th:each="dBooking : ${route.bookings}" class="passenger-item">
                     <span>✅</span>

@@ -26,6 +26,7 @@ public class RouteEstimate {
         this.distanceMeters = distanceMeters;
     }
 
+
     public void setTravelTimeSeconds(Long travelTimeSeconds) {
         this.travelTimeSeconds = travelTimeSeconds;
     }
