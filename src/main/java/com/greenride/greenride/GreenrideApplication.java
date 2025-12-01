@@ -20,17 +20,15 @@ public class GreenrideApplication {
         SpringApplication.run(GreenrideApplication.class, args);
     }
 
-    // --- PASTE THIS BEAN BELOW ---
+
     @Bean
     public CommandLineRunner dataLoader(UserRepository userRepo,
                                         RouteRepository routeRepo,
                                         PasswordEncoder passwordEncoder) {
         return args -> {
-            // 1. Create a Dummy Driver if one doesn't exist
             if (userRepo.findByUsername("driver1").isEmpty()) {
                 User driver = new User();
                 driver.setUsername("driver1");
-                // We use the encoder so you can actually log in with this user!
                 // Username: driver1, Password: password
                 driver.setPassword(passwordEncoder.encode("password"));
                 driver.setRole("ROLE_USER");
@@ -45,7 +43,7 @@ public class GreenrideApplication {
                 passenger.setEmail("random@lekkes.com");
                 userRepo.save(passenger);
 
-                // 2. Create a Dummy Route (Athens -> Thessaloniki)
+                // 2. Create a  Route (Athens -> Thessaloniki)
                 Route r1 = new Route();
                 r1.setDriver(driver);
                 r1.setStartAddress("Syntagma, Athens");
@@ -58,7 +56,7 @@ public class GreenrideApplication {
                 r1.setFuelType("Gasoline");
                 r1.setStatus(RouteStatus.CREATED);
 
-                // Mock data simulating what the map service would return
+
                 r1.setDistanceMeters(500000L); // 500 km
                 r1.setEstimatedDurationSeconds(18000L); // 5 hours
                 r1.setDepartureTime(java.time.LocalDateTime.now().plusDays(1)); // Tomorrow

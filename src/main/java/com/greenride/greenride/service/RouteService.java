@@ -18,7 +18,7 @@ public class RouteService {
     private final RouteRepository routeRepository;
     private final UserRepository userRepository;
     private final OpenRouteService openRouteService;
-    private final NotificationService notificationService; // <--- Notification Support
+    private final NotificationService notificationService;
 
     public RouteService(RouteRepository routeRepository,
                         UserRepository userRepository,
@@ -92,13 +92,13 @@ public class RouteService {
                 .collect(Collectors.toList());
     }
 
-    // --- FINISH ROUTE (Triggers Notifications) ---
+    // FINISH ROUTE (Triggers Notifications)
     public void finishRoute(Long id) {
         Route route = getRouteById(id);
         route.setStatus(RouteStatus.COMPLETED);
         routeRepository.save(route);
 
-        // NOTIFY PASSENGERS INSTANTLY
+
         if (route.getBookings() != null) {
             for (com.greenride.greenride.domain.Booking b : route.getBookings()) {
                 String msg = "🏁 The driver has finished the ride! Click here to rate your trip.";

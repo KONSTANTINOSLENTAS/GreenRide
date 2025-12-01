@@ -12,7 +12,7 @@ import java.util.Map;
 @Service
 public class OpenRouteService {
 
-    // 🔴 MAKE SURE YOUR API KEY IS HERE
+
     private final String API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjhjZmIxZTBhNWY3YzRmYjA4NzQ3ZTE4OGI0MDQ0MzM3IiwiaCI6Im11cm11cjY0In0=";
 
     private final RestTemplate restTemplate = new RestTemplate();
@@ -20,7 +20,7 @@ public class OpenRouteService {
 
     public double[] getCoordinates(String address) {
         try {
-            // FIX: Add &boundary.country=GR to force Greece results only
+            // Add &boundary.country=GR to force Greece results only
             String url = "https://api.openrouteservice.org/geocode/search?api_key=" + API_KEY
                     + "&text=" + address
                     + "&boundary.country=GR";
@@ -56,7 +56,7 @@ public class OpenRouteService {
             double[] startCoords = getCoordinates(startAddress);
             double[] endCoords = getCoordinates(endAddress);
 
-            // FIX: Ensure we aren't routing 0,0 to 0,0
+            //  Ensure we aren't routing 0,0 to 0,0
             if (startCoords[0] == 0.0 || endCoords[0] == 0.0) {
                 throw new RuntimeException("Invalid coordinates found");
             }
