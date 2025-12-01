@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Register - GreenRide</title>
+    <style>
+        /* 1. DEFINE VARIABLES (Same as Login/Home) */
+        :root {
+            --bg-color: #f4f4f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --input-bg: #ffffff;
+            --border-color: #ccc;
+        }
+
+        /* DARK MODE */
+        body.dark-theme {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --input-bg: #333333;
+            --border-color: #444;
+        }
+
+        body {
+            font-family: sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;
+            transition: background-color 0.3s;
+        }
+
+        .login-card {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            width: 100%; max-width: 320px;
+            text-align: center;
+        }
+
+        input {
+            width: 100%; padding: 10px; margin: 8px 0;
+            box-sizing: border-box;
+            background: var(--input-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+
+        .btn {
+            width: 100%; padding: 10px; background: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 15px;
+        }
+        .btn:hover { background: #333; }
+        .error { color: #d32f2f; margin-bottom: 10px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <h1>🚗 GreenRide</h1>
+    <h3>Create Account</h3>
+
+    <div th:if="${error}" class="error">
+        <span th:text="${error}"></span>
+    </div>
+
+    <form th:action="@{/register}" method="post">
+        <input type="text" name="fullName" placeholder="Full Name" required>
+        <input type="email" name="email" placeholder="Email Address" required>
+        <input type="text" name="username" placeholder="Choose Username" required>
+        <input type="password" name="password" placeholder="Choose Password" required>
+
+        <input type="hidden" name="role" value="ROLE_USER">
+
+        <button type="submit" class="btn">Sign Up</button>
+    </form>
+
+    <p style="margin-top: 20px; font-size: 0.9em;">
+        Already have an account? <a href="/login" style="color: #0288d1;">Login here</a>
+    </p>
+</div>
+
+<script>
+    if (localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark-theme');
+    }
+</script>
+
+</body>
+</html>

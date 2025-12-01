@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Post Route - GreenRide</title>
+    <meta charset="UTF-8">
+    <style>
+        :root { --bg-color: #f0f2f5; --card-bg: #ffffff; --text-color: #333333; --accent-color: #2e7d32; --border-color: #eeeeee; --input-bg: #f9fafb; }
+        body.dark-theme { --bg-color: #0a0a0a; --card-bg: #18181b; --text-color: #ededed; --accent-color: #4ade80; --border-color: #27272a; --input-bg: #27272a; }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 40px 20px; display: flex; justify-content: center; }
+
+        .container { max-width: 600px; width: 100%; }
+
+        .card { background: var(--card-bg); padding: 40px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+
+        h1 { margin-top: 0; font-size: 2rem; }
+        .section-label { color: var(--accent-color); font-weight: bold; margin-top: 20px; margin-bottom: 10px; display: block; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+        input, select { width: 100%; padding: 12px; margin-bottom: 15px; background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 8px; box-sizing: border-box; font-family: inherit; }
+
+        /* FAKE UPLOAD BUTTON STYLES */
+        .fake-upload-btn {
+            width: 100%; padding: 15px; border: 2px dashed var(--border-color);
+            background: var(--input-bg); color: var(--text-secondary);
+            border-radius: 8px; cursor: pointer; transition: 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            font-weight: 500;
+        }
+        .fake-upload-btn:hover { border-color: var(--accent-color); color: var(--accent-color); }
+        .fake-upload-btn.uploaded {
+            border-style: solid; border-color: var(--accent-color);
+            background: rgba(46, 125, 50, 0.1); color: var(--accent-color);
+        }
+
+        .btn { width: 100%; padding: 15px; background: var(--accent-color); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 20px; font-size: 1rem; opacity: 0.5; pointer-events: none; transition: 0.3s; }
+        .btn.active { opacity: 1; pointer-events: all; }
+
+        .btn-back { display: block; text-align: center; margin-top: 20px; text-decoration: none; color: #666; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h1>Post a New Ride 🚘</h1>
+        <p style="color: #666; margin-bottom: 30px;">Fill in the details to verify your trip.</p>
+
+        <div th:if="${error}" style="background: rgba(220, 38, 38, 0.1); border: 1px solid #dc2626; color: #dc2626; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold;">
+            <span th:text="${error}">Error Message</span>
+        </div>
+
+        <form th:action="@{/create-route}" method="post">
+
+            <span class="section-label">1. Trip Details</span>
+            <div class="form-grid">
+                <input type="text" name="startAddress" placeholder="Start City" required>
+                <input type="text" name="destinationAddress" placeholder="Destination City" required>
+            </div>
+
+            <div class="form-grid">
+                <input type="datetime-local" name="departureTime" id="dateInput" required>
+                <input type="number" name="availableSeats" placeholder="Seats" min="1" max="6" required>
+            </div>
+            <input type="number" step="0.5" name="price" placeholder="Price ($)" required>
+
+            <span class="section-label">2. Car Details</span>
+            <input type="text" name="carModel" placeholder="Car Model (e.g., Toyota Yaris)" required>
+            <div class="form-grid">
+                <input type="number" name="carYear" placeholder="Year" min="1990" max="2026" required>
+                <input type="number" name="carHp" placeholder="Horsepower (HP)" required>
+            </div>
+            <select name="fuelType" required>
+                <option value="" disabled selected>Select Fuel Type</option>
+                <option value="Petrol">Petrol</option>
+                <option value="Diesel">Diesel</option>
+                <option value="Electric">Electric</option>
+                <option value="Hybrid">Hybrid</option>
+                <option value="LPG">LPG</option>
+            </select>
+
+            <span class="section-label">3. Driver Verification</span>
+
+            <div class="fake-upload-btn" id="btnLicense" onclick="simulateUpload('btnLicense', 'License')">
+                <span>Upload Driver's License</span>
+            </div>
+            <div style="margin-bottom: 15px;"></div>
+
+            <div class="fake-upload-btn" id="btnId" onclick="simulateUpload('btnId', 'ID Card')">
+                <span> Upload ID Card</span>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn"> Verify & Post Route</button>
+        </form>
+
+        <a href="/" class="btn-back">Cancel</a>
+    </div>
+</div>
+
+<script>
+    if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-theme');
+
+    // --- DISABLE PAST DATES LOGIC ---
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    // Set min attribute to current ISO string (YYYY-MM-DDTHH:MM)
+    document.getElementById('dateInput').min = now.toISOString().slice(0, 16);
+
+    // --- FAKE UPLOAD LOGIC ---
+    let licenseUploaded = false;
+    let idUploaded = false;
+
+    function simulateUpload(elementId, typeName) {
+        const btn = document.getElementById(elementId);
+        btn.innerHTML = `<span>⏳ Uploading ${typeName}...</span>`;
+        btn.style.cursor = "wait";
+
+        setTimeout(() => {
+            btn.classList.add('uploaded');
+            btn.innerHTML = `<span>✅ ${typeName} Verified</span>`;
+            btn.style.cursor = "default";
+            btn.onclick = null;
+
+            if (elementId === 'btnLicense') licenseUploaded = true;
+            if (elementId === 'btnId') idUploaded = true;
+
+            checkForm();
+        }, 1000);
+    }
+
+    function checkForm() {
+        if (licenseUploaded && idUploaded) {
+            document.getElementById('submitBtn').classList.add('active');
+        }
+    }
+</script>
+</body>
+</html>

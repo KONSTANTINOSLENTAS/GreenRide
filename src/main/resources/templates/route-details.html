@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>Route Details - GreenRide</title>
+  <meta charset="UTF-8">
+  <style>
+    /* CSS VARIABLES */
+    :root { --bg-color: #f0f2f5; --card-bg: #ffffff; --text-color: #333333; --text-secondary: #666666; --accent-color: #2e7d32; --border-color: #eeeeee; }
+    body.dark-theme { --bg-color: #0a0a0a; --card-bg: #18181b; --text-color: #ededed; --text-secondary: #a1a1aa; --accent-color: #4ade80; --border-color: #27272a; }
+
+    body { font-family: 'Inter', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; min-height: 100vh; box-sizing: border-box;}
+
+    .container { width: 95%; max-width: 1600px; margin: 0 auto; height: 90vh; display: flex; flex-direction: column; }
+    .details-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; height: 100%; }
+    @media (max-width: 900px) { .details-grid { grid-template-columns: 1fr; } }
+
+    .card { background: var(--card-bg); padding: 30px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.05); height: fit-content; }
+    .map-container { width: 100%; height: 100%; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid var(--border-color); position: relative; }
+    .map-frame { width: 100%; height: 120%; border: none; margin-top: -95px; transition: filter 0.3s ease; }
+    body.dark-theme .map-frame { filter: invert(90%) hue-rotate(180deg) brightness(90%) contrast(85%); }
+
+    h1 { margin: 0 0 5px 0; font-size: 1.8rem; line-height: 1.2; }
+    .badge { background: rgba(46, 125, 50, 0.1); color: var(--accent-color); padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; }
+    .info-row { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid var(--border-color); }
+    .info-label { color: var(--text-secondary); font-size: 0.9rem; }
+    .info-val { font-weight: 600; font-size: 0.95rem; }
+    .driver-link { text-decoration: none; color: var(--text-color); font-weight: bold; display: flex; align-items: center; gap: 10px; }
+    .driver-avatar { width: 32px; height: 32px; background: var(--border-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
+
+    .btn { display: block; width: 100%; padding: 15px; text-align: center; background: var(--accent-color); color: white; border-radius: 10px; text-decoration: none; font-weight: 700; border: none; cursor: pointer; margin-top: 0; transition: transform 0.2s; }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-back { display: inline-flex; align-items: center; gap: 5px; margin-bottom: 20px; color: var(--text-secondary); text-decoration: none; font-weight: 600; font-size: 0.9rem; }
+
+    /* --- MODAL STYLES --- */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-overlay.open { display: flex; }
+
+    .modal-card { background: var(--card-bg); width: 90%; max-width: 450px; border-radius: 20px; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid var(--border-color); transform: translateY(20px); opacity: 0; transition: all 0.3s ease; }
+    .modal-overlay.open .modal-card { transform: translateY(0); opacity: 1; }
+
+    .payment-option { border: 1px solid var(--border-color); padding: 15px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; gap: 15px; transition: all 0.2s; }
+    .payment-option:hover, .payment-option.selected { border-color: var(--accent-color); background: rgba(46, 125, 50, 0.05); }
+
+    /* --- LOGO BUTTONS --- */
+    .apple-btn { background: #000; color: white; padding: 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; transition: opacity 0.2s; }
+
+    .apple-btn:hover, .crypto-btn:hover { opacity: 0.9; }
+
+    .radio-circle { width: 18px; height: 18px; border: 2px solid var(--text-secondary); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .payment-option.selected .radio-circle { border-color: var(--accent-color); }
+    .payment-option.selected .radio-circle::after { content: ''; width: 10px; height: 10px; background: var(--accent-color); border-radius: 50%; }
+
+    .card-logo { height: 24px; width: auto; margin-left: auto; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <a href="/" class="btn-back">← Back to Routes</a>
+
+  <div th:if="${success}" style="background: rgba(46, 125, 50, 0.1); border: 1px solid var(--accent-color); color: var(--accent-color); padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-weight: bold;">
+    <span th:text="${success}"></span>
+  </div>
+  <div th:if="${error}" style="background: rgba(220, 38, 38, 0.1); border: 1px solid #dc2626; color: #dc2626; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-weight: bold;">
+    <span th:text="${error}"></span>
+  </div>
+
+  <div class="details-grid">
+
+    <div class="card">
+      <span class="badge" th:text="${route.status}">CREATED</span>
+
+      <h1 style="margin-top: 15px;" th:text="${route.destinationAddress}">To City</h1>
+      <p style="color: var(--text-secondary); margin: 0 0 30px 0; font-size: 0.95rem;">
+        <strong th:text="${route.startAddress}">From City</strong>
+      </p>
+
+      <div class="info-row">
+        <span class="info-label">Driver</span>
+        <div style="text-align: right;">
+          <a th:href="@{/user/{u}(u=${route.driver.username})}" class="driver-link" style="justify-content: flex-end;">
+            <span th:text="${route.driver.fullName}">Driver Name</span>
+            <div class="driver-avatar" th:text="${#strings.substring(route.driver.username, 0, 1)}">D</div>
+          </a>
+          <div style="font-size: 0.7rem; color: var(--accent-color); font-weight: bold; margin-top: 4px;">
+            ✅ Verified License
+          </div>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <span class="info-label">Vehicle</span>
+        <div style="text-align: right;">
+          <div class="info-val" th:text="${route.carModel}">Toyota Yaris</div>
+          <div style="font-size: 0.8rem; color: var(--text-secondary);">
+            <span th:text="${route.carYear}">2022</span> • <span th:text="${route.fuelType}">Hybrid</span> • <span th:text="${route.carHp}">100</span> HP
+          </div>
+        </div>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Departure</span>
+        <span class="info-val" th:text="${#temporals.format(route.departureTime, 'dd MMM, HH:mm')}">Date</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Distance</span>
+        <span class="info-val"><span th:text="${route.distanceMeters / 1000}">500</span> km</span>
+      </div>
+      <div class="info-row" style="border: none;">
+        <span class="info-label">Price per Seat</span>
+        <span class="info-val" style="font-size: 1.4rem; color: var(--accent-color);">$<span th:text="${route.price}">45.0</span></span>
+      </div>
+
+      <div th:if="${isBooked}" style="text-align: center; margin-top: 25px; padding: 15px; background: rgba(46, 125, 50, 0.1); border: 1px solid var(--accent-color); border-radius: 12px; color: var(--accent-color); font-weight: 700;">✅ BOOKED</div>
+
+      <div th:if="${currentUser == route.driver.username}" style="text-align: center; margin-top: 25px; color: var(--accent-color); font-weight: bold; padding: 15px; border: 1px dashed var(--accent-color); border-radius: 12px;">🚘 You are driving this route</div>
+
+      <div th:if="${route.availableSeats == 0 and !isBooked and currentUser != route.driver.username}" style="text-align: center; margin-top: 25px; color: #d32f2f; font-weight: bold; padding: 15px; border: 1px solid #d32f2f; border-radius: 12px;">❌ SOLD OUT</div>
+
+      <div th:if="${currentUser != route.driver.username and route.availableSeats > 0 and !isBooked}" style="margin-top: 25px;">
+        <button type="button" class="btn" onclick="openPaymentModal()">
+          Book Seat (<span th:text="${route.availableSeats}"></span> left)
+        </button>
+      </div>
+    </div>
+
+    <div class="map-container">
+      <iframe class="map-frame" th:src="'https://maps.google.com/maps?saddr=' + ${route.startAddress} + ', Greece&daddr=' + ${route.destinationAddress} + ', Greece&output=embed'"></iframe>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="paymentModal">
+  <div class="modal-card">
+    <h2 style="margin-top: 0; color: var(--text-color);">Confirm Booking</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+      Are you sure you want to travel to <b th:text="${route.destinationAddress}">Dest</b> on <b th:text="${#temporals.format(route.departureTime, 'dd MMM')}">Date</b>?
+    </p>
+
+    <h4 style="margin: 0 0 15px 0; color: var(--text-color);">Select Payment Method</h4>
+
+    <div class="apple-btn" onclick="handleMockPayment('Apple Pay')">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Apple_Pay_logo.svg/512px-Apple_Pay_logo.svg.png"
+           alt="Apple Pay"
+           style="height: 24px; filter: invert(1);">
+    </div>
+
+
+
+    <div style="text-align: center; margin: 15px 0; color: var(--text-secondary); font-size: 0.8em; font-weight: bold;">OR PAY WITH CARD</div>
+
+    <form th:action="@{/book/{id}(id=${route.id})}" method="post" id="cardForm">
+
+      <div class="payment-option" onclick="selectCard('visa')">
+        <div class="radio-circle"></div>
+        <span>Visa ending in 4242</span>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/512px-Visa_Inc._logo.svg.png" class="card-logo" alt="Visa">
+      </div>
+
+      <div class="payment-option" onclick="selectCard('master')">
+        <div class="radio-circle"></div>
+        <span>Mastercard ending in 8899</span>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/512px-Mastercard-logo.svg.png" class="card-logo" alt="Mastercard">
+      </div>
+
+      <input type="hidden" name="cardType" id="selectedCard" value="">
+
+      <div style="display: flex; gap: 10px; margin-top: 25px;">
+        <button type="button" class="btn" style="background: transparent; color: var(--text-color); border: 1px solid var(--border-color);" onclick="closePaymentModal()">Cancel</button>
+        <button type="button" class="btn" onclick="submitCardPayment()">Pay & Book</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-theme');
+
+  const modal = document.getElementById('paymentModal');
+
+  function openPaymentModal() { modal.classList.add('open'); }
+  function closePaymentModal() { modal.classList.remove('open'); }
+
+  function handleMockPayment(provider) {
+    const btn = event.currentTarget;
+    // Spinner Logic
+    btn.innerHTML = '<div style="border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid white; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite;"></div>';
+    btn.style.pointerEvents = 'none';
+
+    setTimeout(() => {
+      document.getElementById('cardForm').submit();
+    }, 1500);
+  }
+
+  function selectCard(type) {
+    document.querySelectorAll('.payment-option').forEach(el => el.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+    document.getElementById('selectedCard').value = type;
+  }
+
+  function submitCardPayment() {
+    if(!document.getElementById('selectedCard').value) {
+      // Simple shake animation for feedback
+      const btn = event.currentTarget;
+      btn.style.animation = 'shake 0.3s';
+      setTimeout(() => btn.style.animation = '', 300);
+      return;
+    }
+    document.getElementById('cardForm').submit();
+  }
+</script>
+<style>
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+</style>
+</body>
+</html>

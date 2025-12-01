@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Notifications - GreenRide</title>
+    <meta charset="UTF-8">
+    <style>
+        :root { --bg-color: #f0f2f5; --card-bg: #ffffff; --text-color: #333333; --text-secondary: #666666; --accent-color: #2e7d32; --border-color: #eeeeee; }
+        body.dark-theme { --bg-color: #0a0a0a; --card-bg: #18181b; --text-color: #ededed; --text-secondary: #a1a1aa; --accent-color: #4ade80; --border-color: #27272a; }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; display: flex; justify-content: center; }
+
+        .container { width: 100%; max-width: 600px; margin-top: 50px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-back { text-decoration: none; color: var(--text-secondary); font-weight: bold; }
+        .btn-back:hover { color: var(--text-color); }
+
+        /* Notification Card Style */
+        .notif-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+            animation: slideIn 0.3s ease;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        /* Hover Effect to indicate clickability */
+        .notif-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: var(--accent-color);
+        }
+
+        .icon { font-size: 1.5rem; background: rgba(46, 125, 50, 0.1); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; flex-shrink: 0; }
+
+        .time { font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px; }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1 style="margin:0;">🔔 Notifications</h1>
+        <a href="/" class="btn-back">← Dashboard</a>
+    </div>
+
+    <div th:if="${notifications.isEmpty()}" style="text-align: center; color: var(--text-secondary); margin-top: 50px;">
+        <p>No new alerts.</p>
+    </div>
+
+    <a th:each="n : ${notifications}"
+       th:href="@{/live-ride/{id}(id=${n.routeId})}"
+       style="text-decoration: none; color: inherit;">
+
+        <div class="notif-card">
+            <div class="icon">💬</div>
+            <div>
+                <div style="font-weight: 600;" th:text="${n.message}">Message</div>
+                <div class="time" th:text="${#temporals.format(n.timestamp, 'dd MMM, HH:mm')}">Time</div>
+            </div>
+        </div>
+    </a>
+
+</div>
+
+<script>
+    if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-theme');
+</script>
+</body>
+</html>

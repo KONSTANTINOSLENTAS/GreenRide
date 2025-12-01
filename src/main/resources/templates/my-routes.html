@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>My Routes - GreenRide</title>
+    <meta charset="UTF-8">
+    <style>
+        /* CSS VARIABLES */
+        :root {
+            --bg-color: #f0f2f5; --card-bg: #ffffff; --text-color: #333333;
+            --text-secondary: #666666; --header-bg: rgba(255, 255, 255, 0.85);
+            --accent-color: #2e7d32; --border-color: #eeeeee; --grid-line: rgba(0, 0, 0, 0.04);
+            --shadow-color: rgba(0,0,0,0.05);
+        }
+        body.dark-theme {
+            --bg-color: #0a0a0a; --card-bg: #18181b; --text-color: #ededed;
+            --text-secondary: #a1a1aa; --header-bg: rgba(24, 24, 27, 0.85);
+            --accent-color: #4ade80; --border-color: #27272a; --grid-line: rgba(74, 222, 128, 0.15);
+        }
+
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; min-height: 100vh; transition: background 0.3s; }
+
+        .background-container { position: fixed; inset: 0; z-index: -1; background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px); background-size: 50px 50px; }
+
+        .app-header { position: fixed; top: 0; left: 0; right: 0; height: 70px; background: var(--header-bg); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 30px; z-index: 100; justify-content: space-between; }
+        .app-logo { font-size: 1.5rem; text-decoration: none; font-weight: 800; background: linear-gradient(135deg, var(--accent-color) 0%, #3b82f6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .btn-back { text-decoration: none; color: var(--text-color); font-weight: 600; display: flex; align-items: center; gap: 5px; }
+        .btn-back:hover { color: var(--accent-color); }
+
+        .container { max-width: 1000px; margin: 100px auto 50px; padding: 0 20px; }
+        .section-title { font-size: 1.8rem; font-weight: 700; margin-bottom: 20px; color: var(--text-color); border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
+
+        .route-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 25px; margin-bottom: 60px; }
+
+        .route-card { background: var(--card-bg); padding: 25px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 4px 10px var(--shadow-color); transition: transform 0.2s; position: relative; }
+        .route-card:hover { transform: translateY(-3px); }
+
+        .route-info { margin: 8px 0; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+        .badge { background: rgba(46, 125, 50, 0.1); color: var(--accent-color); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+
+        .empty-state { color: var(--text-secondary); padding: 20px; background: var(--card-bg); border-radius: 12px; border: 1px dashed var(--border-color); }
+
+        .passenger-list { margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 10px; }
+        .passenger-item { margin-left: 25px; margin-top: 5px; display: flex; align-items: center; gap: 8px; font-size: 0.9em; }
+        .passenger-link { text-decoration: none; color: var(--text-color); font-weight: 500; }
+
+        /* CANCEL MODAL CSS */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(5px); justify-content: center; align-items: center; }
+        .modal-content { background-color: var(--card-bg); padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; border: 1px solid var(--border-color); box-shadow: 0 20px 50px rgba(0,0,0,0.3); animation: popIn 0.3s; }
+        @keyframes popIn { from {transform: scale(0.8); opacity: 0;} to {transform: scale(1); opacity: 1;} }
+        select { width: 100%; padding: 10px; margin: 15px 0; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); }
+        .btn-cancel-confirm { background: #ef4444; color: white; width: 100%; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+
+        /* TOAST NOTIFICATION */
+        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: var(--card-bg); color: var(--text-color); border-left: 5px solid var(--accent-color); padding: 15px 20px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); width: 300px; display: flex; align-items: center; gap: 10px; animation: slideInRight 0.5s, fadeOut 0.5s 4.5s forwards; }
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        @keyframes fadeOut { to { opacity: 0; pointer-events: none; } }
+
+        /* ============================
+           ✅ NEW: WEATHER WIDGET CSS
+           ============================ */
+        .weather-widget {
+            display: flex; justify-content: space-between; align-items: center;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.05) 100%);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px; padding: 10px 15px; margin-top: 15px;
+            font-size: 0.85rem; opacity: 0; animation: fadeIn 1s forwards;
+        }
+        .weather-col { display: flex; flex-direction: column; align-items: center; }
+        .weather-temp { font-weight: 800; font-size: 1.1rem; color: var(--text-color); }
+        .weather-sub { color: var(--text-secondary); font-size: 0.75rem; }
+        .weather-arrow { color: var(--text-secondary); opacity: 0.5; }
+        .weather-icon { font-size: 1.2rem; }
+        @keyframes fadeIn { to { opacity: 1; } }
+
+    </style>
+</head>
+<body>
+
+<div class="background-container"></div>
+
+<header class="app-header">
+    <a href="/" class="app-logo">GreenRide</a>
+    <a href="/" class="btn-back">← Back to Dashboard</a>
+</header>
+
+<div class="container">
+
+    <div th:if="${info}" style="background: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; color: #3b82f6; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-weight: bold;">
+        <span th:text="${info}"></span>
+    </div>
+
+    <h2 class="section-title">🎟️ My Bookings</h2>
+    <div th:if="${myBookings.isEmpty()}" class="empty-state">You haven't booked any rides yet.</div>
+
+    <div class="route-grid">
+        <div th:each="booking : ${myBookings}" class="route-card" style="border-left: 5px solid #3b82f6;">
+
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <a th:href="@{/route/{id}(id=${booking.route.id})}" style="text-decoration: none; color: inherit;">
+                    <h3 style="margin: 0;" th:text="${booking.route.startAddress} + ' ➔ ' + ${booking.route.destinationAddress}">A to B</h3>
+                </a>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <span class="badge" th:text="${booking.status}">CONFIRMED</span>
+                    <button class="badge"
+                            style="background: #ef4444; color: white; border: none; cursor: pointer; padding: 4px 10px;"
+                            th:onclick="'openCancelModal(' + ${booking.id} + ')'">
+                        ✕ Cancel
+                    </button>
+                </div>
+            </div>
+
+            <div class="route-info" style="margin-top: 15px;">
+                <span>📅</span> <span th:text="${#temporals.format(booking.route.departureTime, 'dd MMM yyyy, HH:mm')}">Date</span>
+            </div>
+
+            <div class="weather-widget"
+                 th:id="'weather-' + ${booking.id}"
+                 th:data-start="${booking.route.startAddress}"
+                 th:data-end="${booking.route.destinationAddress}"
+                 th:data-time="${booking.route.departureTime}">
+                <span>Loading weather...</span>
+            </div>
+
+            <div class="route-info">
+                <span>🚗</span> <strong>Driver:</strong> <a th:href="@{/user/{u}(u=${booking.route.driver.username})}" class="passenger-link" th:text="${booking.route.driver.fullName}">Driver</a>
+            </div>
+
+            <div class="passenger-list">
+                <strong style="font-size: 0.9em;">👥 Fellow Travelers:</strong>
+                <div th:if="${booking.route.bookings.isEmpty()}" style="color: var(--text-secondary); font-size: 0.8em; margin-left: 20px;">Just you.</div>
+                <div th:each="pBooking : ${booking.route.bookings}" class="passenger-item">
+                    <span>👤</span>
+                    <a th:href="@{/user/{u}(u=${pBooking.passenger.username})}" class="passenger-link">
+                        <span th:text="${pBooking.passenger.fullName}">Name</span>
+                        <span th:if="${pBooking.passenger.username == #authentication.name}" style="color: var(--text-secondary); font-size: 0.8em;">(You)</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-title">🚘 Driving</h2>
+    <div th:if="${drivingRoutes.isEmpty()}" class="empty-state">You haven't posted any routes yet.</div>
+
+    <div class="route-grid">
+        <div th:each="route : ${drivingRoutes}" class="route-card" style="border-left: 5px solid var(--accent-color);">
+
+            <a th:href="@{/route/{id}(id=${route.id})}" style="text-decoration: none; color: inherit;">
+                <div style="display: flex; justify-content: space-between;">
+                    <h3 style="margin: 0;" th:text="${route.startAddress} + ' ➔ ' + ${route.destinationAddress}">A to B</h3>
+                    <span class="badge" th:text="${route.status}">CREATED</span>
+                </div>
+            </a>
+
+            <div class="route-info" style="margin-top: 15px;">
+                <span>💺</span> Seats Left: <span th:text="${route.availableSeats}">3</span>
+            </div>
+
+            <div class="weather-widget"
+                 th:id="'weather-d-' + ${route.id}"
+                 th:data-start="${route.startAddress}"
+                 th:data-end="${route.destinationAddress}"
+                 th:data-time="${route.departureTime}">
+                <span>Loading weather...</span>
+            </div>
+
+            <div class="route-info">
+                <span>📅</span> <span th:text="${#temporals.format(route.departureTime, 'dd MMM, HH:mm')}">Date</span>
+            </div>
+
+            <div class="passenger-list">
+                <strong style="font-size: 0.9em;">👥 Manifest:</strong>
+                <div th:if="${route.bookings.isEmpty()}" style="color: var(--text-secondary); font-size: 0.8em; margin-left: 20px;">No bookings yet.</div>
+                <div th:each="dBooking : ${route.bookings}" class="passenger-item">
+                    <span>✅</span>
+                    <a th:href="@{/user/{u}(u=${dBooking.passenger.username})}" class="passenger-link" th:text="${dBooking.passenger.fullName}">Name</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="cancelModal" class="modal">
+    <div class="modal-content">
+        <h3>Cancel Booking?</h3>
+        <p style="color: var(--text-secondary); font-size: 0.9em;">
+            If you cancel less than 10 minutes before departure, you will <strong>not be refunded</strong> and it will mark your profile.
+        </p>
+        <form id="cancelForm" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            <label style="display:block; text-align: left; font-size: 0.9em; font-weight: bold;">Reason:</label>
+            <select name="reason" required>
+                <option value="Driver Reviews">Driver Reviews (Bad Reputation)</option>
+                <option value="Passenger Reviews">Passenger Reviews</option>
+                <option value="Change of Plans">Change of Plans</option>
+                <option value="Other">Other</option>
+            </select>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn" style="width: 100%; background: transparent; color: var(--text-color); border: 1px solid var(--border-color);" onclick="closeModal()">Keep Ride</button>
+                <button type="submit" class="btn-cancel-confirm">Confirm Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+    if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-theme');
+
+    // Modal Logic
+    function openCancelModal(bookingId) {
+        document.getElementById('cancelForm').action = '/booking/' + bookingId + '/cancel';
+        document.getElementById('cancelModal').style.display = 'flex';
+    }
+    function closeModal() {
+        document.getElementById('cancelModal').style.display = 'none';
+    }
+
+    // Toast Polling
+    setInterval(() => {
+        fetch('/api/notifications/unread')
+            .then(res => res.json())
+            .then(notifs => {
+                notifs.forEach(n => showToast(n.message));
+            })
+            .catch(err => console.log("Polling error (ignore if logged out)"));
+    }, 3000);
+
+    function showToast(msg) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerHTML = `<span>🔔</span> <div>${msg}</div>`;
+        container.appendChild(toast);
+        setTimeout(() => { toast.remove(); }, 5000);
+    }
+
+    /* =========================================
+       ✅ WEATHER LOGIC (CLIENT-SIDE)
+       ========================================= */
+    document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll('.weather-widget').forEach(async (widget) => {
+            const startCity = widget.dataset.start;
+            const endCity = widget.dataset.end;
+            const departureTime = new Date(widget.dataset.time);
+
+            // If ride is > 14 days away, Open-Meteo won't have forecast. Hide widget.
+            const diffDays = (departureTime - new Date()) / (1000 * 60 * 60 * 24);
+            if (diffDays > 14 || diffDays < -1) {
+                widget.style.display = 'none';
+                return;
+            }
+
+            try {
+                const startW = await fetchCityWeather(startCity, departureTime);
+                const endW = await fetchCityWeather(endCity, departureTime);
+
+                if (startW && endW) {
+                    widget.innerHTML = `
+                            <div class="weather-col">
+                                <span class="weather-sub">${startCity}</span>
+                                <span class="weather-icon">${getWeatherIcon(startW.code)}</span>
+                                <span class="weather-temp">${Math.round(startW.temp)}°C</span>
+                            </div>
+                            <div class="weather-arrow">➔</div>
+                            <div class="weather-col">
+                                <span class="weather-sub">${endCity}</span>
+                                <span class="weather-icon">${getWeatherIcon(endW.code)}</span>
+                                <span class="weather-temp">${Math.round(endW.temp)}°C</span>
+                            </div>
+                        `;
+                } else {
+                    widget.style.display = 'none'; // API Error
+                }
+            } catch (e) {
+                console.error("Weather error:", e);
+                widget.style.display = 'none';
+            }
+        });
+    });
+
+    async function fetchCityWeather(city, dateObj) {
+        // 1. Geocode
+        const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city}&limit=1`);
+        const geoData = await geoRes.json();
+        if(!geoData.length) return null;
+
+        const lat = geoData[0].lat;
+        const lon = geoData[0].lon;
+        const dateStr = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
+        const hour = dateObj.getHours();
+
+        // 2. Fetch Weather
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weathercode,precipitation_probability&start_date=${dateStr}&end_date=${dateStr}&timezone=auto`;
+        const weatherRes = await fetch(url);
+        const wData = await weatherRes.json();
+
+        // 3. Extract Specific Hour
+        if (!wData.hourly) return null;
+
+        // Find index of the specific hour
+        // Open-Meteo returns array of 24 hours. Index 0 = 00:00, Index 15 = 15:00
+        const temp = wData.hourly.temperature_2m[hour];
+        const code = wData.hourly.weathercode[hour];
+
+        return { temp, code };
+    }
+
+    function getWeatherIcon(code) {
+        if (code <= 3) return '☀️'; // Clear/Cloudy
+        if (code >= 45 && code <= 48) return '🌫️'; // Fog
+        if (code >= 51 && code <= 67) return '🌧️'; // Rain
+        if (code >= 71 && code <= 77) return '❄️'; // Snow
+        if (code >= 80 && code <= 99) return '⛈️'; // Storm/Showers
+        return '🌥️';
+    }
+</script>
+
+</body>
+</html>

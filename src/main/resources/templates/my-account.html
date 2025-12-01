@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>My Account - GreenRide</title>
+    <meta charset="UTF-8">
+    <style>
+        /* CSS VARIABLES (Consistent with App) */
+        :root {
+            --bg-color: #f0f2f5; --card-bg: #ffffff; --text-color: #333333;
+            --text-secondary: #666666; --header-bg: rgba(255, 255, 255, 0.85);
+            --accent-color: #2e7d32; --border-color: #eeeeee; --grid-line: rgba(0, 0, 0, 0.04);
+            --shadow-color: rgba(0,0,0,0.05);
+        }
+        body.dark-theme {
+            --bg-color: #0a0a0a; --card-bg: #18181b; --text-color: #ededed;
+            --text-secondary: #a1a1aa; --header-bg: rgba(24, 24, 27, 0.85);
+            --accent-color: #4ade80; --border-color: #27272a; --grid-line: rgba(74, 222, 128, 0.15);
+        }
+
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; min-height: 100vh; transition: background 0.3s; }
+
+        .background-container { position: fixed; inset: 0; z-index: -1; background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px); background-size: 50px 50px; perspective: 500px; animation: moveGrid 60s linear infinite; }
+        @keyframes moveGrid { 0% { transform: translateY(0) scale(1.05); } 50% { transform: translateY(-25px) scale(1); } 100% { transform: translateY(0) scale(1.05); } }
+
+        /* HEADER */
+        .app-header { position: fixed; top: 0; left: 0; right: 0; height: 70px; background: var(--header-bg); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 30px; z-index: 100; justify-content: space-between; }
+        .app-logo { font-size: 1.5rem; text-decoration: none; font-weight: 800; background: linear-gradient(135deg, var(--accent-color) 0%, #3b82f6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .btn-back { text-decoration: none; color: var(--text-color); font-weight: 600; }
+
+        /* PROFILE CARD */
+        .profile-container {
+            max-width: 600px; margin: 120px auto 50px; padding: 0 20px;
+        }
+
+        .profile-card {
+            background: var(--card-bg); border-radius: 20px; overflow: hidden;
+            box-shadow: 0 10px 40px var(--shadow-color); border: 1px solid var(--border-color);
+            animation: fadeInUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; transform: translateY(20px);
+        }
+
+        .profile-header {
+            background: linear-gradient(135deg, var(--accent-color) 0%, #3b82f6 100%);
+            height: 120px; position: relative;
+        }
+
+        .avatar-container {
+            width: 100px; height: 100px; background: var(--card-bg);
+            border-radius: 50%; padding: 5px; position: absolute;
+            bottom: -50px; left: 50%; transform: translateX(-50%);
+        }
+
+        .avatar {
+            width: 100%; height: 100%; background: #e0e0e0; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem; font-weight: bold; color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .profile-body {
+            padding: 60px 40px 40px; text-align: center;
+        }
+
+        h2 { margin: 0; font-size: 2rem; color: var(--text-color); }
+        .username { color: var(--text-secondary); font-size: 1.1rem; margin-top: 5px; }
+        .role-badge {
+            display: inline-block; background: rgba(46, 125, 50, 0.1); color: var(--accent-color);
+            padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; margin-top: 10px;
+        }
+
+        /* STATS GRID */
+        .stats-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px;
+        }
+        .stat-box {
+            background: var(--bg-color); padding: 20px; border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+        .stat-value { font-size: 2rem; font-weight: 800; color: var(--text-color); }
+        .stat-label { font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+
+        /* INFO LIST */
+        .info-list { margin-top: 30px; text-align: left; }
+        .info-item { padding: 15px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; }
+        .info-item:last-child { border-bottom: none; }
+        .info-label { color: var(--text-secondary); }
+        .info-data { font-weight: 600; color: var(--text-color); }
+
+        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="background-container"></div>
+
+<header class="app-header">
+    <a href="/" class="app-logo">GreenRide</a>
+    <a href="/" class="btn-back">← Back to Dashboard</a>
+</header>
+
+<div class="profile-container">
+    <div class="profile-card">
+
+        <div class="profile-header">
+            <div class="avatar-container">
+                <div class="avatar" th:text="${#strings.substring(user.username, 0, 1)}">U</div>
+            </div>
+        </div>
+
+        <div class="profile-body">
+            <h2 th:text="${user.fullName}">Full Name</h2>
+            <div class="username">@<span th:text="${user.username}">username</span></div>
+            <div class="role-badge" th:text="${user.role}">ROLE_USER</div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-value" th:text="${ridesBooked}">0</div>
+                    <div class="stat-label">Rides Taken</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" th:text="${ridesDriven}">0</div>
+                    <div class="stat-label">Drives Posted</div>
+                </div>
+            </div>
+
+            <div class="info-list">
+                <div class="info-item">
+                    <span class="info-label">Email Address</span>
+                    <span class="info-data" th:text="${user.email}">user@example.com</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Member Since</span>
+                    <span class="info-data">Nov 2025</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-theme');
+</script>
+
+</body>
+</html>>
