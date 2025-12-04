@@ -37,6 +37,17 @@
         .route-card { background: var(--card-bg); padding: 25px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 4px 10px var(--shadow-color); transition: transform 0.2s; position: relative; }
         .route-card:hover { transform: translateY(-3px); }
 
+        /* NEW: Completed Ride Style */
+        .completed-ride {
+            opacity: 0.75;
+            background-color: var(--bg-color); /* Slightly darker bg to indicate inactive */
+            /* Border will be handled inline to override specific colors */
+        }
+        .completed-ride .badge {
+            background: #6c757d !important; /* Grey badge */
+            color: white !important;
+        }
+
         .route-info { margin: 8px 0; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
         .badge { background: rgba(46, 125, 50, 0.1); color: var(--accent-color); align-self: flex-start; height: fit-content; white-space: nowrap; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
 
@@ -59,9 +70,7 @@
         @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
         @keyframes fadeOut { to { opacity: 0; pointer-events: none; } }
 
-        /* ============================
-           ✅ NEW: WEATHER WIDGET CSS
-           ============================ */
+
         .weather-widget {
             display: flex; justify-content: space-between; align-items: center;
             background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.05) 100%);
@@ -97,15 +106,21 @@
     <div th:if="${myBookings.isEmpty()}" class="empty-state">You haven't booked any rides yet.</div>
 
     <div class="route-grid">
-        <div th:each="booking : ${myBookings}" class="route-card" style="border-left: 5px solid #3b82f6;">
+        <div th:each="booking : ${myBookings}"
+             class="route-card"
+             th:classappend="${booking.route.status.name() == 'COMPLETED'} ? 'completed-ride' : ''"
+             th:style="${booking.route.status.name() == 'COMPLETED'} ? 'border-left: 5px solid #6c757d;' : 'border-left: 5px solid #3b82f6;'">
 
             <div style="display: flex; justify-content: space-between; align-items: start;">
                 <a th:href="@{/route/{id}(id=${booking.route.id})}" style="text-decoration: none; color: inherit;">
                     <h3 style="margin: 0;" th:text="${booking.route.startAddress} + ' ➔ ' + ${booking.route.destinationAddress}">A to B</h3>
                 </a>
                 <div style="display: flex; gap: 5px; align-items: center;">
-                    <span class="badge" th:text="${booking.status}">CONFIRMED</span>
-                    <button class="badge"
+                    <span th:if="${booking.route.status.name() == 'COMPLETED'}" class="badge">🏁 COMPLETED</span>
+                    <span th:if="${booking.route.status.name() != 'COMPLETED'}" class="badge" th:text="${booking.status}">CONFIRMED</span>
+
+                    <button th:if="${booking.route.status.name() != 'COMPLETED'}"
+                            class="badge"
                             style="background: #ef4444; color: white; border: none; cursor: pointer; padding: 4px 10px;"
                             th:onclick="'openCancelModal(' + ${booking.id} + ')'">
                         ✕ Cancel
@@ -147,12 +162,17 @@
     <div th:if="${drivingRoutes.isEmpty()}" class="empty-state">You haven't posted any routes yet.</div>
 
     <div class="route-grid">
-        <div th:each="route : ${drivingRoutes}" class="route-card" style="border-left: 5px solid var(--accent-color);">
+        <div th:each="route : ${drivingRoutes}"
+             class="route-card"
+             th:classappend="${route.status.name() == 'COMPLETED'} ? 'completed-ride' : ''"
+             th:style="${route.status.name() == 'COMPLETED'} ? 'border-left: 5px solid #6c757d;' : 'border-left: 5px solid var(--accent-color);'">
 
             <a th:href="@{/route/{id}(id=${route.id})}" style="text-decoration: none; color: inherit;">
                 <div style="display: flex; justify-content: space-between;">
                     <h3 style="margin: 0;" th:text="${route.startAddress} + ' ➔ ' + ${route.destinationAddress}">A to B</h3>
-                    <span class="badge" th:text="${route.status}">CREATED</span>
+
+                    <span th:if="${route.status.name() == 'COMPLETED'}" class="badge">🏁 COMPLETED</span>
+                    <span th:if="${route.status.name() != 'COMPLETED'}" class="badge" th:text="${route.status}">CREATED</span>
                 </div>
             </a>
 
@@ -241,7 +261,7 @@
     }
 
     /* =========================================
-       ✅ WEATHER LOGIC (CLIENT-SIDE)
+       WEATHER LOGIC (CLIENT-SIDE)
        ========================================= */
     document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll('.weather-widget').forEach(async (widget) => {
@@ -285,7 +305,6 @@
     });
 
     async function fetchCityWeather(city, dateObj) {
-        // 1. Geocode
         const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city}&limit=1`);
         const geoData = await geoRes.json();
         if(!geoData.length) return null;
@@ -295,16 +314,12 @@
         const dateStr = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
         const hour = dateObj.getHours();
 
-        // 2. Fetch Weather
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weathercode,precipitation_probability&start_date=${dateStr}&end_date=${dateStr}&timezone=auto`;
         const weatherRes = await fetch(url);
         const wData = await weatherRes.json();
 
-        // 3. Extract Specific Hour
         if (!wData.hourly) return null;
 
-        // Find index of the specific hour
-        // Open-Meteo returns array of 24 hours. Index 0 = 00:00, Index 15 = 15:00
         const temp = wData.hourly.temperature_2m[hour];
         const code = wData.hourly.weathercode[hour];
 

@@ -265,6 +265,11 @@
                 <a href="/" class="dropdown-item">🏠 Home</a>
                 <a href="/my-account" class="dropdown-item">👤 My Account</a>
                 <a href="/my-routes" class="dropdown-item">📍 My Routes</a>
+                <div sec:authorize="hasRole('ADMIN')">
+                    <a href="/admin" class="dropdown-item" style="color: #dc3545; font-weight: bold;">
+                        🛠 Admin Panel
+                    </a>
+                </div>
                 <form th:action="@{/logout}" method="post" style="margin: 0;">
                     <button type="submit" class="dropdown-item"
                             style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; color: #ef4444; font-family: inherit; font-size: inherit;">
@@ -421,9 +426,7 @@
         setTimeout(() => { toast.remove(); }, 5000);
     }
 
-    /* =========================================
-       ✅ CAR LOGO LOADER
-       ========================================= */
+
     function loadCarLogos() {
         // Mapping of Brands to High-Quality SVGs
         const brandMap = {

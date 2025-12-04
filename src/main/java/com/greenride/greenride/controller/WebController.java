@@ -6,13 +6,13 @@ import com.greenride.greenride.repository.UserRepository;
 import com.greenride.greenride.service.BookingService;
 import com.greenride.greenride.service.NotificationService;
 import com.greenride.greenride.service.RouteService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile; // <--- IMPORTS FOR FILES
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;     // <--- IMPORT
@@ -355,4 +355,30 @@ public class WebController {
 
         return "public-profile";
     }
+
+    @Autowired
+    private com.greenride.greenride.service.AdminService adminService; // Inject the service
+
+    @GetMapping("/admin")
+    public String adminDashboard(org.springframework.ui.Model model) {
+        // 1. Get Statistics
+        model.addAttribute("stats", adminService.getSystemStatistics());
+
+        // 2. Get User List (for the table)
+        model.addAttribute("users", adminService.getAllUsers());
+
+        return "admin-dashboard"; // This looks for admin-dashboard.html
+    }
+
+    // Endpoint to delete a user
+    @PostMapping("/admin/users/delete/{id}")
+    public String deleteUser(@PathVariable Long id) {
+        adminService.deleteUser(id);
+        return "redirect:/admin"; // Refresh page after delete
+    }
+
+
+
+
+
 }

@@ -8,6 +8,7 @@ import com.greenride.greenride.dto.Coordinates;
 import com.greenride.greenride.dto.RouteEstimate;
 import com.greenride.greenride.repository.RouteRepository;
 import com.greenride.greenride.repository.UserRepository;
+import org.springframework.scheduling.annotation.Scheduled; // <--- NEW IMPORT
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -53,7 +54,7 @@ public class RouteService {
         route.setAvailableSeats(seats);
         route.setPrice(price);
 
-        // 2. SET DATA (Fixing getter usage)
+        // 2. SET DATA
         route.setDistanceMeters(estimate.getDistanceMeters());
         route.setEstimatedDurationSeconds(estimate.getTravelTimeSeconds());
 
@@ -77,7 +78,6 @@ public class RouteService {
     }
 
     public List<Route> getRoutesByDriver(String username) {
-        // Fixing the repository call
         return routeRepository.findByDriverUsername(username);
     }
 
@@ -98,19 +98,25 @@ public class RouteService {
                 .collect(Collectors.toList());
     }
 
-    // FIX: Changed FINISHED -> COMPLETED and restored manual notification logic
+    /**
+     * MANUAL TRIGGER: Driver clicks "Finish" button.
+     */
     public void finishRoute(Long id) {
         Route route = getRouteById(id);
 
-        // 1. Fix Enum Name
+        // Prevent re-finishing an already completed route
+        if (route.getStatus() == RouteStatus.COMPLETED) {
+            return;
+        }
+
+        // 1. Update Status
         route.setStatus(RouteStatus.COMPLETED);
         routeRepository.save(route);
 
-        // 2. Fix Notification Logic (Restore the loop)
+        // 2. Send Notifications
         if (route.getBookings() != null) {
             for (com.greenride.greenride.domain.Booking b : route.getBookings()) {
                 String msg = "🏁 The driver has finished the ride! Click here to rate your trip.";
-                // This calls the existing method in NotificationService
                 notificationService.sendImmediateAlert(b.getPassenger(), msg, route.getId());
             }
         }
@@ -119,4 +125,39 @@ public class RouteService {
     public void updateRouteTime(Route route) {
         routeRepository.save(route);
     }
-}
+
+    /**
+     * AUTOMATIC TRIGGER: Runs every 60 seconds.
+     * Checks if the estimated arrival time has passed.
+     */
+    @Scheduled(fixedRate = 60000) // 60000ms = 1 minute
+    public void autoCompleteExpiredRoutes() {
+        // Fetch all routes that are NOT completed yet (to save performance)
+        // Ensure you added findByStatusNot to RouteRepository!
+        List<Route> activeRoutes = routeRepository.findByStatusNot(RouteStatus.COMPLETED);
+
+        LocalDateTime now = LocalDateTime.now();
+
+        for (Route route : activeRoutes) {
+            // Safety check: skip if data is missing
+            if (route.getDepartureTime() == null || route.getEstimatedDurationSeconds() == null) {
+                continue;
+            }
+
+            // Calculate Arrival Time
+            LocalDateTime arrivalTime = route.getDepartureTime()
+                    .plusSeconds(route.getEstimatedDurationSeconds());
+
+            // Check if current time is AFTER arrival time
+            if (now.isAfter(arrivalTime)) {
+                System.out.println("⏰ Auto-completing expired route ID: " + route.getId());
+
+                route.setStatus(RouteStatus.COMPLETED);
+                routeRepository.save(route);
+
+                // (Optional) We generally don't send notifications for auto-complete
+                // to avoid spamming if the server restarts, but you could add them here if you want.
+            }
+        }
+    }
+}      // Safety check: skip if data is missing
